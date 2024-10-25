@@ -1,0 +1,179 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Dashboard</title>
+
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Employee Management</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="modal" data-target="#employeeModal"> Add Employee</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="modal" data-target="#addDynamicFieldModal">Settings</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="text-center">Welcome to the Dashboard</h1>
+        <p class="text-center">Manage your employees and settings here.</p>
+        
+        <button class="btn btn-primary mb-3" data-toggle="modal" data-target="#employeeModal">Create Employee</button>
+
+        <div class="input-group mb-3">
+            <input type="text" id="search" class="form-control" placeholder="Search.." autocomplete="off"/>
+        </div>
+
+      
+    
+     
+        <table class="table table-bordered table-responsive-md table-hover" id="empTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    {% for dynamic_field in dynamic_fields %}
+                        <th>{{ dynamic_field.field_name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if employee_data %}
+                    {% for data in employee_data %}
+                    <tr>
+                        <td>{{ data.employee.name }}</td>
+                        <td>{{ data.employee.email }}</td>
+                        <td>{{ data.employee.phone }}</td>
+                        {% for dynamic_field in dynamic_fields %}
+                            <td>{{ data.dynamic_fields|get_item:dynamic_field.field_name }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">No employees found.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+
+<div class="modal fade" id="addDynamicFieldModal" tabindex="-1" role="dialog" aria-labelledby="addDynamicFieldModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDynamicFieldModalLabel">Add Dynamic Field</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form action="{% url 'add_dynamic_field' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="field_name">Field Name</label>
+                        <input type="text" class="form-control" id="field_name" name="field_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="field_type">Field Type</label>
+                        <select class="form-control" id="field_type" name="field_type" required>
+                            <option value="text">Text</option>
+                            <option value="number">Number</option>
+                            <option value="date">Date</option>
+                            <option value="boolean">Boolean</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Field</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="employeeModal" tabindex="-1" role="dialog" aria-labelledby="employeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="employeeModalLabel">Add Employee</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form action="{% url 'save_employee' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="employee_name">Name</label>
+                        <input type="text" class="form-control" id="employee_name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="employee_email">Email</label>
+                        <input type="email" class="form-control" id="employee_email" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="employee_phone">Phone</label>
+                        <input type="text" class="form-control" id="employee_phone" name="phone" required>
+                    </div>
+
+                    {% for dynamic_field in dynamic_fields %}
+                    <div class="form-group">
+                        <label>{{ dynamic_field.field_name }}</label>
+                        <input type="hidden" name="dynamic_field_ids" value="{{ dynamic_field.id }}">
+                        {% if dynamic_field.field_type == 'text' %}
+                            <input type="text" class="form-control" name="dynamic_fields[{{ dynamic_field.id }}]" placeholder="Enter value">
+                        {% elif dynamic_field.field_type == 'number' %}
+                            <input type="number" class="form-control" name="dynamic_fields[{{ dynamic_field.id }}]" placeholder="Enter number">
+                        {% elif dynamic_field.field_type == 'date' %}
+                            <input type="date" class="form-control" name="dynamic_fields[{{ dynamic_field.id }}]">
+                        {% elif dynamic_field.field_type == 'boolean' %}
+                            <select class="form-control" name="dynamic_fields[{{ dynamic_field.id }}]">
+                                <option value="True">True</option>
+                                <option value="False">False</option>
+                            </select>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                
+                    <button type="submit" class="btn btn-primary">Save Employee</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <script>
+        var $rows = $('#empTable tbody tr');
+        $('#search').keyup(function() {
+          var val = $.trim($(this).val()).replace(/ +/g, ' ').toLowerCase();
+          
+          $rows.show().filter(function() {
+            var text = $(this).text().replace(/\s+/g, ' ').toLowerCase();
+            return !~text.indexOf(val);
+          }).hide();
+        });
+  </script>      
+</body>
+</html>
